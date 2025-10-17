@@ -1,0 +1,29 @@
+# Bind to HTTP only; Render terminates TLS outside the container
+:80 {
+    encode gzip
+
+    # Accept your Render hostname to avoid "host not allowed"
+    @allowedHost {
+        host ap-ticket-central.onrender.com
+    }
+    handle {
+        # Reject other hosts explicitly (optional hardening)
+        @notAllowed {
+            not host ap-ticket-central.onrender.com
+        }
+        respond @notAllowed 403
+    }
+
+    # API + websockets to backend (Django)
+    handle_path /api/* {
+        reverse_proxy 127.0.0.1:8000
+    }
+    handle /ws* {
+        reverse_proxy 127.0.0.1:8000
+    }
+
+    # Everything else to web frontend (Node, port 3000)
+    handle {
+        reverse_proxy 127.0.0.1:3000
+    }
+}
